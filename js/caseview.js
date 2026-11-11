@@ -12,6 +12,12 @@
     open(id) {
       const c = G.caseById(id);
       if (!c) { G.toast('Case file missing.', 'alert'); return; }
+      const left = G.coolLeft ? G.coolLeft(id) : 0;
+      if (left) {
+        G.toast('<b>File sealed.</b> Mission compromised. Available in <b>' + G.coolText(left) + '</b>.', 'lock', 6000);
+        if (window.SH && SH.Workshop) SH.Workshop.show();
+        return;
+      }
       G.active = c;
       G.state = G.progress(id);
       G.railTab = 'evidence';
@@ -71,6 +77,21 @@
       return (G.active.suspects || []).filter(s => s.location === loc.id);
     },
 
+    missionCard(c) {
+      if (!c.missionId || !window.SH || !SH.Mission) return '';
+      const done = SH.Mission.done(c.missionId);
+      if (done) return `<div class="panel" style="padding:12px;text-align:left;background:rgba(6,40,32,.25);border-color:rgba(52,211,153,.35)">
+        <div class="eyebrow" style="color:#6ee7b7;margin-bottom:4px">Undercover complete</div>
+        <div style="font-size:11.5px;color:#a894c4;line-height:1.55">The operation delivered its evidence. The file is ready for a conclusion.</div></div>`;
+      const left = G.coolLeft ? G.coolLeft(c.id) : 0;
+      return `<div class="panel" style="padding:12px;text-align:left;background:rgba(60,16,36,.28);border-color:rgba(244,63,94,.35)">
+        <div class="eyebrow" style="color:#fda4af;margin-bottom:4px">Undercover required</div>
+        <div style="font-size:11.5px;color:#d6c8ea;line-height:1.55">This file is missing testimony only an operation can obtain. You cannot close it without going undercover.</div>
+        <button class="btn btn-sm btn-primary" style="margin-top:9px;width:100%" data-act="${left ? 'mission' : 'deploy'}" ${left ? 'disabled' : ''}>
+          ${A.icon('mask')} ${left ? 'File sealed · ' + G.coolText(left) : 'Deploy undercover'}</button>
+      </div>`;
+    },
+
     /* --------------------------------------------------------- */
     render() {
       const c = G.active, s = G.state, root = document.getElementById('screen-case');
@@ -114,10 +135,11 @@
             <span class="txt"><b>${esc(a.label)}</b><span>Examined</span></span></button>`;
         }
         const locked = !!a._miss;
+        const cost = a.ipCost ? ` · ${a.ipCost} IP` : '';
         return `<button class="act ${locked ? 'is-locked' : ''} ${a.puzzle ? 'puzzle' : ''} ${a.suspect ? 'talk' : ''}"
           data-aid="${esc(a.id)}" ${locked ? 'aria-disabled="true"' : ''}>
           <span class="ai">${A.icon(a.icon || (a.puzzle ? 'lock' : a.suspect ? 'user' : 'search'))}</span>
-          <span class="txt"><b>${esc(a.label)}</b><span>${locked ? 'Locked — needs: ' + esc(a._miss) : esc(a.desc || (a.puzzle ? 'Interactive analysis' : 'Examine'))}</span></span>
+          <span class="txt"><b>${esc(a.label)}${a.ipCost ? ` <span style="color:#fbbf24;font-family:var(--mono);font-size:9px">${a.ipCost} IP</span>` : ''}</b><span>${locked ? 'Locked — needs: ' + esc(a._miss) : esc(a.desc || (a.puzzle ? 'Interactive analysis' : 'Examine')) + cost}</span></span>
           <span class="go">${locked ? A.icon('lock') : A.icon('chevron')}</span>
         </button>`;
       }).join('');
@@ -153,7 +175,7 @@
 
       const briefHTML = `
         <div class="brief-body">
-          ${(c.briefing || []).map(p => `<p>${p}</p>`).join('')}
+          ${G.collapse(c.briefing || [], 2)}
           ${(c.objectives || []).length ? `<div class="rail-sec-title" style="margin-top:14px"><span class="t">Lines of enquiry</span></div>
             ${c.objectives.map(o => `<div class="fact"><b>Task</b><span>${esc(o)}</span></div>`).join('')}` : ''}
           <button class="btn btn-sm btn-wide" data-act="brief" style="margin-top:14px">${A.icon('book')} Reopen briefing</button>
@@ -210,6 +232,7 @@
               <div class="rail-body">${railBody}</div>
             </div>
             <button class="btn accuse-btn" data-act="accuse">${A.icon('gavel')} ${s.solved ? 'Review the verdict' : 'Accuse someone'}</button>
+            ${this.missionCard(c)}
             ${s.solved ? `<button class="btn btn-sm" data-act="verdict">${A.icon('book')} Read the closing report</button>` : ''}
             <div style="font-size:10.5px;color:var(--dim);line-height:1.6;padding:0 4px">
               ${s.hints ? `Hints used: <b style="color:#c9a4ff">${s.hints}</b> · ` : ''}${s.wrong ? `Wrong accusations: <b style="color:#fda4af">${s.wrong}</b>` : 'No wrong accusations yet.'}
@@ -219,11 +242,17 @@
       </div>`;
 
       /* wire */
-      root.querySelectorAll('[data-act="back"]').forEach(b => b.onclick = () => { if (window.UI) UI.showCases(); });
+      root.querySelectorAll('[data-act="back"]').forEach(b => b.onclick = () => { if (window.SH && SH.Workshop) SH.Workshop.show(); else if (window.UI) UI.showCases(); });
       root.querySelectorAll('[data-act="hint"]').forEach(b => b.onclick = () => this.hint());
       root.querySelectorAll('[data-act="brief"]').forEach(b => b.onclick = () => this.briefing(false));
       root.querySelectorAll('[data-act="accuse"]').forEach(b => b.onclick = () => this.accuse());
       root.querySelectorAll('[data-act="verdict"]').forEach(b => b.onclick = () => this.showVerdict());
+      root.querySelectorAll('[data-act="mission"]').forEach(b => b.onclick = () => {
+        if (window.SH && SH.Mission) SH.Mission.dossier({ caseId: G.active.id, all: false });
+      });
+      root.querySelectorAll('[data-act="deploy"]').forEach(b => b.onclick = () => {
+        if (window.SH && SH.Mission) SH.Mission.start(G.active.missionId);
+      });
       root.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { G.railTab = b.dataset.tab; this.render(); });
       root.querySelectorAll('[data-loc]').forEach(b => b.onclick = () => this.goLoc(b.dataset.loc));
       root.querySelectorAll('[data-aid]').forEach(b => b.onclick = (e) => { e.stopPropagation(); this.action(b.dataset.aid); });
@@ -268,6 +297,10 @@
       if (a.puzzle) { this.puzzle(a.puzzle, a); return; }
       if (a.suspect) { this.suspect(a.suspect); return; }
       if (!a.repeat && s.done.includes(a.id)) return;
+      if (a.ipCost) {
+        if (!G.ipSpend(a.ipCost, 'A special examination costs ' + a.ipCost + ' investigation points.')) return;
+        if (window.SH && SH.haptic) SH.haptic('clue');
+      }
       if (!a.repeat) s.done.push(a.id);
       if (a.text) G.log('narr', a.text);
       if (a.sys) G.log('sys', a.sys);
@@ -302,9 +335,14 @@
       if (pz.flags) [].concat(pz.flags).forEach(f => s.flags[f] = true);
       if (pz.log) G.log('narr', pz.log);
       if (pz.bonusClue) G.addClue(pz.bonusClue);
+      G.save.stats.puzzles = (G.save.stats.puzzles || 0) + 1;
+      G.ipAdd(pz.reward || 4, 'puzzle');
+      if (['cipher', 'terminal', 'keypad', 'dial'].includes(pz.type)) G.ach('codebreaker');
+      if (pz.type === 'repair' || pz.type === 'mix') { if (window.SH) SH.haptic('good'); }
       G.persist();
       this.render();
       G.toast('<b>Analysis complete.</b> ' + (pz.short || 'New evidence has been logged.'), 'check');
+      if (window.SH) SH.haptic('good');
     },
 
     clue(id) {
@@ -415,7 +453,7 @@
             <div class="cap"><div class="k">${esc(c.est || 'Investigation')} · ${'★'.repeat(c.difficulty || 1)}</div><h3>${esc(c.title)}</h3></div>
           </div>
           ${facts.length ? `<div class="brief-facts">${facts.map(f => `<div class="f"><span>${esc(f.k)}</span><b>${esc(f.v)}</b></div>`).join('')}</div>` : ''}
-          <div class="brief-copy">${(c.briefing || []).map(p => `<p>${p}</p>`).join('')}</div>
+          <div class="brief-copy">${G.collapse(c.briefing || [], 2)}</div>
           ${(c.objectives || []).length ? `<div class="divider"></div><div class="eyebrow" style="margin-bottom:8px">Your brief</div>
             <ul class="steps">${c.objectives.map((o, i) => `<li><span class="n">${i + 1}</span><span>${esc(o)}</span></li>`).join('')}</ul>` : ''}`,
         footer: `<button class="btn btn-sm" id="briefClose">Close</button><button class="btn btn-primary" id="briefGo">${first ? 'Begin investigation' : 'Return to the case'} ${A.icon('chevron')}</button>`
@@ -444,6 +482,8 @@
       const c = G.active, s = G.state;
       if (!G.save.settings.hints) { G.toast('Hints are switched off in Settings.', 'alert'); return; }
       if (s.solved) { G.toast('This case is closed. Open another file, detective.', 'folder'); return; }
+      const cost = (SH.COSTS && SH.COSTS.hint) || 5;
+      if (!G.ipSpend(cost, 'A hint costs ' + cost + ' investigation points.')) return;
       const loc = this.currentLoc();
       let hint = null;
       const acts = this.availableActions(loc);
@@ -459,13 +499,14 @@
           else {
             const clueGaps = Object.keys(c.clues || {}).filter(id => !s.found.includes(id));
             if (clueGaps.length) hint = `Evidence is still missing. Check every location and every interview — start with what you already have in the Evidence tab.`;
+            else if (c.missionId && SH.Mission && !SH.Mission.done(c.missionId)) hint = `The file is still missing undercover testimony. Deploy on the operation from the case rail.`;
             else hint = `You have everything you need. Time to accuse someone.`;
           }
         }
       }
       s.hints++;
       G.persist();
-      G.log('sys', 'HINT — ' + hint);
+      G.log('sys', 'HINT (' + cost + ' IP) — ' + hint);
       G.toast('<b>Hint</b> — ' + esc(hint), 'spark', 8000);
       G.sound('click');
       this.render();
@@ -475,21 +516,44 @@
     accuse() {
       const c = G.active, s = G.state;
       if (s.solved) { this.showVerdict(); return; }
+      if (c.missionId && window.SH && SH.Mission && !SH.Mission.done(c.missionId)) {
+        const m = G.modal({
+          title: 'The file is incomplete', sub: 'Undercover testimony is missing', icon: 'lock', slim: true,
+          body: `<p>You can name a suspect, but without the operation's testimony the report will not survive a courtroom.</p>
+            <p style="color:#a894c4;font-size:12px;line-height:1.6">Deploy undercover from the case rail. A failed operation seals this file for ten minutes and resets its progress.</p>`,
+          footer: `<button class="btn" id="gateNo">Not yet</button><button class="btn btn-primary" id="gateGo">${A.icon('mask')} Open operations</button>`
+        });
+        m.modal.querySelector('#gateNo').onclick = m.close;
+        m.modal.querySelector('#gateGo').onclick = () => { m.close(); SH.Mission.dossier({ caseId: c.id }); };
+        return;
+      }
       const qs = (c.solution && c.solution.questions) || [];
       if (!qs.length) { G.toast('This case has no accusation configured.', 'alert'); return; }
       const picked = {};
+      const kinds = qs.map((q, i) => q.kind || (i === 0 ? 'suspect' : i === 2 ? 'motive' : i === 3 ? 'evidence' : 'method'));
+      const label = k => k === 'suspect' ? 'The responsible person' : k === 'motive' ? 'The motive' : k === 'evidence' ? 'The evidence that breaks it' : 'The deduction';
+      const found = s.found.map(id => c.clues[id]).filter(Boolean);
+      const strength = Math.round((s.found.length / Math.max(1, Object.keys(c.clues || {}).length)) * 100);
+      const evidenceReview = found.length ? found.map(cl =>
+        `<span class="acc-evi"><b>${esc(cl.name)}</b><span>${esc(cl.caption || cl.short || '')}</span></span>`).join('') :
+        '<span style="color:#fda4af;font-size:12px">No evidence logged. Any report you write will be torn up.</span>';
+
       const body = `
-        <p style="margin-bottom:14px">Your report will go to the magistrate. One wrong conclusion and the case is torn up in open court. Choose carefully.</p>
+        <div class="acc-intro">
+          <p>Your report goes to the magistrate. A wrong conclusion costs <b style="color:#fda4af">10 investigation points</b> and a star. Review the file before you commit.</p>
+          <div class="acc-strength"><span>Evidence strength</span><div class="bar"><i style="width:${strength}%"></i></div><b>${s.found.length}/${Object.keys(c.clues || {}).length}</b></div>
+        </div>
+        <details class="acc-review"><summary>Review collected evidence (${found.length})</summary><div class="acc-evi-list">${evidenceReview}</div></details>
         ${qs.map((q, qi) => `<div class="acc-q" data-q="${qi}">
-          <div class="qh"><span>${String(qi + 1).padStart(2, '0')}</span>${q.q}</div>
+          <div class="qh"><span>${String(qi + 1).padStart(2, '0')}</span><div><em>${esc(label(kinds[qi]))}</em>${q.q}</div></div>
           <div class="acc-opts">${(q.options || []).map((o, oi) => `<button class="acc-opt" data-q="${qi}" data-v="${esc(o.v)}">
             <span class="k">${String.fromCharCode(65 + oi)}</span><span>${o.t}</span></button>`).join('')}</div>
         </div>`).join('')}
         <div class="verdict-note" id="accWarning" style="${s.found.length < (c.solution.minEvidence || 0) ? '' : 'display:none'}">
-          ${A.icon('alert')} You have <b>${s.found.length}</b> pieces of evidence. The magistrate recommends at least <b>${c.solution.minEvidence}</b>. You may proceed, but a thin file breaks easily.
+          ${A.icon('alert')} You have <b>${s.found.length}</b> pieces of evidence. A convincing report needs at least <b>${c.solution.minEvidence}</b>. You may proceed, but a thin file breaks easily.
         </div>`;
       const m = G.modal({
-        title: 'Accuse', sub: 'Case ' + String(c.num).padStart(2, '0') + ' · ' + esc(c.title), icon: 'gavel', wide: true,
+        title: 'File your accusation', sub: 'Case ' + String(c.num).padStart(2, '0') + ' · ' + esc(c.title), icon: 'gavel', wide: true,
         body, footer: `<button class="btn" id="accCancel">Cancel</button><button class="btn btn-primary" id="accGo">${A.icon('gavel')} Submit findings</button>`
       });
       m.modal.querySelectorAll('.acc-opt').forEach(b => b.onclick = () => {
@@ -503,44 +567,60 @@
       const go = m.modal.querySelector('#accGo');
       go.onclick = () => {
         if (Object.keys(picked).length < qs.length) { G.toast('Answer every question in the report before submitting.', 'alert'); return; }
-        const wrongs = qs.filter((q, i) => String(picked[i]) !== String(q.answer));
-        if (wrongs.length === 0) {
+        const wrongIdx = qs.map((q, i) => String(picked[i]) !== String(q.answer) ? i : -1).filter(i => i >= 0);
+        if (wrongIdx.length === 0) {
+          const strong = s.found.length >= (c.solution.minEvidence || 0);
           m.close();
-          this.solve();
+          this.solve({ strong: strong });
         } else {
           s.wrong++;
+          const penalty = 10;
+          G.save.ip = Math.max(0, G.save.ip - penalty);
+          G.save.ipSpent = (G.save.ipSpent || 0) + penalty;
           G.persist();
           G.sound('bad');
-          const note = m.body.querySelector('#accWarning') || m.body.querySelector('.verdict-note');
-          const warn = m.body.querySelector('#accWarning') || document.createElement('div');
-          warn.className = 'verdict-note';
+          if (window.SH) SH.haptic('bad');
+          const names = wrongIdx.map(i => label(kinds[i]).toLowerCase()).join(' and ');
+          const warn = m.body.querySelector('#accWarning');
           warn.style.display = '';
-          warn.innerHTML = `<b>The magistrate sets your report down.</b> “This is not it, detective. ${qs.length - wrongs.length === 0 ? 'Not one of these conclusions holds.' : 'At least one of these conclusions collapses under its own weight.'} Go back to the evidence before you ruin your name.”`;
-          if (!warn.parentNode) m.body.appendChild(warn);
+          warn.className = 'verdict-note';
+          warn.innerHTML = `<b>The magistrate sets your report down.</b> “This is not it, detective. Your ${esc(names)} ${wrongIdx.length > 1 ? 'do not' : 'does not'} hold against the file. Go back to the evidence before you ruin your name.”<br><br><span style="color:#fda4af;font-size:11px">−${penalty} investigation points. One star at risk.</span>`;
           go.textContent = 'Revise findings';
           go.onclick = () => { m.close(); this.render(); };
           warn.scrollIntoView({ behavior: 'smooth', block: 'center' });
           G.log('bad', 'Your accusation was rejected. The magistrate sent you back to the evidence.');
+          G.toast('<b>Report rejected.</b> −' + penalty + ' IP. Re-read the file.', 'alert', 6000);
           this.render();
         }
       };
     },
 
-    solve() {
+    solve(opts) {
+      opts = opts || {};
       const c = G.active, s = G.state;
+      const clean = !s.wrong && s.hints === 0;
       if (!s.solved) {
         let stars = 3;
         if (s.hints >= 3) stars--;
-        if (s.hints >= 7) stars--;
         if (s.wrong >= 1) stars--;
+        if (!opts.strong) stars--;
         if (s.wrong >= 2) stars = 1;
         s.stars = Math.max(1, stars);
         s.solved = true;
         s.solvedAt = Date.now();
         G.save.last = c.id;
+        G.save.stats.cases = (G.save.stats.cases || 0) + 1;
+        G.save.stats.clues = (G.save.stats.clues || 0) + s.found.length;
         G.log('good', 'CASE CLOSED — ' + c.title);
+        const reward = 25 + Math.min(20, s.found.length) + (clean ? 10 : 0);
+        G.ipAdd(reward, 'case');
+        G.ach('first-case');
+        if (s.hints === 0) G.ach('no-hints');
+        if (G.solvedCount() >= G.cases.length) G.ach('master');
+        if (window.SH && SH.Audio) SH.Audio.music('victory');
+        if (window.SH) { SH.haptic('case'); }
+        G.sound('case');
         G.persist();
-        if (window.UI) UI.showCases; // noop guard
       }
       this.render();
       this.showVerdict(true);
@@ -575,7 +655,7 @@
       G.sound('stamp');
       if (fresh) {
         const rank = G.rank();
-        setTimeout(() => G.toast(`<b>Case closed.</b> Rank: ${rank.title} · ${G.solvedCount()}/25 cases solved.`, 'badge', 6200), 700);
+        setTimeout(() => G.toast(`<b>Case closed.</b> Rank: ${rank.title} · ${G.solvedCount()}/${G.cases.length} cases solved.`, 'badge', 6200), 700);
       }
     },
 

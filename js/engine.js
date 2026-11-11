@@ -6,20 +6,45 @@
   const A = window.Art;
   window.SH = window.SH || { cases: [] };
 
-  const KEY = 'sharlock_holmes_save_v1';
-  const DEFAULT_SETTINGS = { text: 'normal', sound: false, hints: true, stream: false };
+  const KEY = 'sharlock_holmes_save_v2';
+  const DEFAULT_SETTINGS = {
+    text: 'normal', hints: true, stream: false,
+    music: true, musicVol: 0.35,
+    sfx: true, sfxVol: 0.65,
+    haptics: true
+  };
+
+  function fresh() {
+    return {
+      v: 2, progress: {}, settings: Object.assign({}, DEFAULT_SETTINGS), last: null,
+      ip: 100, ipEarned: 0, ipSpent: 0,
+      achievements: {}, stats: { clues: 0, puzzles: 0, cases: 0, missions: 0, links: 0, contradictions: 0 },
+      cooldowns: {}, missions: {},
+      daily: { day: null, done: false, streak: 0 },
+      exam: { last: 0, seen: [] }
+    };
+  }
 
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
       if (raw) {
         const s = JSON.parse(raw);
-        s.settings = Object.assign({}, DEFAULT_SETTINGS, s.settings || {});
-        s.progress = s.progress || {};
-        return s;
+        const base = fresh();
+        const out = Object.assign(base, s);
+        out.settings = Object.assign({}, DEFAULT_SETTINGS, s.settings || {});
+        out.progress = s.progress || {};
+        out.stats = Object.assign(base.stats, s.stats || {});
+        out.achievements = s.achievements || {};
+        out.cooldowns = s.cooldowns || {};
+        out.missions = s.missions || {};
+        out.daily = Object.assign(base.daily, s.daily || {});
+        out.exam = Object.assign(base.exam, s.exam || {});
+        if (typeof out.ip !== 'number') out.ip = 100;
+        return out;
       }
     } catch (e) { /* ignore */ }
-    return { v: 1, progress: {}, settings: Object.assign({}, DEFAULT_SETTINGS), last: null };
+    return fresh();
   }
 
   const Game = window.Game = {
@@ -35,7 +60,7 @@
       try { localStorage.setItem(KEY, JSON.stringify(this.save)); } catch (e) { /* storage blocked */ }
     },
     reset() {
-      this.save = { v: 1, progress: {}, settings: Object.assign({}, DEFAULT_SETTINGS), last: null };
+      this.save = fresh();
       this.persist();
     },
     progress(id) {
@@ -57,8 +82,9 @@
     rank() {
       const n = this.solvedCount();
       const tiers = [
-        [0, 'Rookie'], [2, 'Constable'], [5, 'Investigator'], [9, 'Detective'],
-        [14, 'Inspector'], [19, 'Chief Inspector'], [23, 'Master Sleuth'], [25, 'The Sharlock']
+        [0, 'Rookie'], [3, 'Constable'], [6, 'Investigator'], [10, 'Detective'],
+        [15, 'Inspector'], [20, 'Chief Inspector'], [25, 'Master Sleuth'],
+        [29, 'Consulting Detective'], [30, 'The Sharlock']
       ];
       let r = tiers[0][1], next = null;
       for (let i = 0; i < tiers.length; i++) {
@@ -70,7 +96,7 @@
 
     /* ---- navigation ---- */
     showScreen(name) {
-      ['title', 'cases', 'case'].forEach(n => {
+      ['title', 'workshop', 'cases', 'case', 'mission'].forEach(n => {
         const el = document.getElementById('screen-' + n);
         if (el) el.classList.toggle('is-active', n === name);
       });
@@ -122,7 +148,8 @@
 
     /* ---- sound ---- */
     sound(kind) {
-      if (!this.save.settings.sound) return;
+      if (!this.save.settings.sfx) return;
+      if (window.SH && SH.Audio) { SH.Audio.sfx(kind); return; }
       try {
         const Ctx = window.AudioContext || window.webkitAudioContext;
         if (!Ctx) return;
@@ -182,10 +209,13 @@
       if (!this.state || !id) return false;
       if (this.state.found.includes(id)) return false;
       this.state.found.push(id);
+      if (this.onClue) this.onClue(id, silent);
       if (!silent) {
         const c = this.active;
         this.toast('<b>New evidence:</b> ' + A.esc(this.clueName(c, id)), 'search', 3600);
         this.sound('good');
+        if (window.SH && SH.haptic) SH.haptic('clue');
+        this.ipAdd(2, 'evidence');
       }
       this.persist();
       return true;

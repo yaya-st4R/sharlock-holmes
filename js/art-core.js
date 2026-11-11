@@ -137,7 +137,7 @@
       floor = id + 'floor', fog = id + 'fog', rim = id + 'rim', glow = id + 'glow', sign = id + 'sign';
     let rain = '';
     const R = rng('rain-42');
-    for (let i = 0; i < 110; i++) {
+    for (let i = 0; i < 0; i++) {
       const x = R() * 1600, y = R() * 780, l = 8 + R() * 26, o = .1 + R() * .4;
       rain += `<line x1="${x.toFixed(0)}" y1="${y.toFixed(0)}" x2="${(x - l * .28).toFixed(0)}" y2="${(y + l).toFixed(0)}" stroke="#c9a4ff" stroke-opacity="${o.toFixed(2)}" stroke-width="${R() > .8 ? 1.4 : .8}"/>`;
     }
@@ -145,7 +145,7 @@
     for (let i = 0; i < 60; i++) stars += `<circle cx="${(R() * 1600).toFixed(0)}" cy="${(R() * 420).toFixed(0)}" r="${(R() * 1.4 + .3).toFixed(1)}" fill="#c9a4ff" opacity="${(R() * .5 + .1).toFixed(2)}"/>`;
     const skyline = (x, w, h) => `<path d="M${x} ${780}V${420 - h}h${w * .3}v${30 + h * .2}h${w * .25}v-${18}H${x + w * .75}v${18}H${x + w}V780z" fill="#0a0614" stroke="#2a1642" stroke-width="1.2"/>`;
 
-    return `<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A detective standing alone in the rain under a streetlamp, shrouded in darkness">
+    return `<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A detective standing alone beneath a streetlamp, shrouded in darkness">
       <defs>
         ${lg(sky, [[0, '#0a0513'], [.45, '#140a26'], [.72, '#241040'], [1, '#0a0513']], 0, 0, 0, 1)}
         ${rg(moon, [[0, '#e9d5ff', .5], [.35, '#a855f7', .16], [1, '#a855f7', 0]])}
@@ -253,8 +253,7 @@
         <rect x="8" y="178" width="38" height="2" fill="#e879f9" opacity=".8"/>
       </g>
 
-      <!-- rain foreground -->
-      <g>${rain}</g>
+      <!-- no rain: the city is still -->
       <rect width="1600" height="900" fill="url(#${fog})" opacity=".12"/>
     </svg>`;
   }
