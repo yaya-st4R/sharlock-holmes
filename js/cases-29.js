@@ -140,6 +140,7 @@
       'monitor-term': {
         type: 'terminal', title: 'Camera Archive', subtitle: 'Kellard House CCTV', icon: 'terminal',
         user: 'rchand', host: 'kellard-cctv', password: 'nightshift',
+        passwords: ['nightshift', 'night shift', 'the night shift'],
         intro: 'Kellard monitoring console. Type help for commands.',
         banner: 'NIGHT LOG - 4 CAMERAS - GAP 02:14-02:18',
         files: [

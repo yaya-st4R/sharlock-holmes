@@ -207,6 +207,7 @@
       'cert-term': {
         type: 'terminal', title: 'Certificate Audit', subtitle: 'Care-home deaths', icon: 'terminal',
         user: 'registrar', host: 'county-coroner', password: 'sable',
+        passwords: ['sable', 'the sable', 'sable county'],
         intro: 'County death registration audit. Type help for commands.',
         banner: 'DR I. SABLE - CERTIFICATES SIGNED - 18 MONTHS',
         files: [

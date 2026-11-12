@@ -181,6 +181,7 @@
       'access-term': {
         type: 'terminal', title: 'Access Control', subtitle: 'Badge events', icon: 'terminal',
         user: 'security', host: 'meridian-acs', password: '44b',
+        passwords: ['44b', 'batch 44b', '44 b batch'],
         intro: 'Meridian access control. Type help for commands.',
         banner: 'BADGE EVENTS - 04 APRIL - LAB WING',
         files: [

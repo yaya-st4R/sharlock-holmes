@@ -188,6 +188,7 @@
       'crate-log': {
         type: 'terminal', title: 'Crate and Door Log', subtitle: 'Service access', icon: 'terminal',
         user: 'security', host: 'meridian-gallery', password: 'gallery',
+        passwords: ['gallery', 'the gallery', 'meridian gallery'],
         intro: 'Gallery access console. Type help for commands.',
         banner: 'SERVICE WING - 21:00 TO 22:30',
         files: [

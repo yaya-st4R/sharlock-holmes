@@ -155,6 +155,7 @@
       'backup-term': {
         type: 'terminal', title: "Ivo's Backup Phone", subtitle: 'One unsent message', icon: 'terminal',
         user: 'imarsh', host: 'secure-handler', password: 'meridian',
+        passwords: ['meridian', 'meridian tower', 'the meridian'],
         intro: 'Secure handler app. Type help for commands.',
         banner: '1 DRAFT MESSAGE - UNSENT - PRIORITY',
         files: [
@@ -171,6 +172,7 @@
       'key-audit': {
         type: 'terminal', title: 'Hotel Key Audit', subtitle: 'Room 402 access', icon: 'terminal',
         user: 'security', host: 'gilt-keys', password: 'gilt',
+        passwords: ['gilt', 'gilt keys', 'the gilt keys'],
         intro: 'Gilt Room key console. Type help for commands.',
         banner: 'KEY EVENTS - ROOM 402 - 19:00 TO 22:00',
         files: [

@@ -147,6 +147,7 @@
       'vault-log': {
         type: 'terminal', title: 'Recovery Server', subtitle: 'Wallet access audit', icon: 'terminal',
         user: 'bo', host: 'vault-recovery', password: 'recovery',
+        passwords: ['recovery', 'the recovery', 'vault recovery'],
         intro: 'Meridian Vault recovery console. Type help for commands.',
         banner: 'WALLET AUDIT - 20:00 TO 21:00',
         files: [
