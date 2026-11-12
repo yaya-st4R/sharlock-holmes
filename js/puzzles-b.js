@@ -13,6 +13,9 @@
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
     return h;
   }
+  function sound(k) {
+    if (window.Game && window.Game.sound) window.Game.sound(k);
+  }
 
   /* ---------- ordered sequence / timeline ---------- */
   P.types.sequence = function (pz, api) {

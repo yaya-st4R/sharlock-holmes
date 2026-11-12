@@ -243,7 +243,7 @@
     range.oninput = paint; paint();
     const submit = () => {
       const ans = norm(input.value);
-      const accept = [].concat(pz.answer || []).map(norm);
+      const accept = [].concat(pz.answer || pz.plain || []).map(norm);
       if (!ans) { api.note('Write the decoded message first.'); return; }
       if (accept.includes(ans)) { api.note(''); api.solve(pz.success); }
       else { api.note('That is not it. Adjust the wheel and read it again.'); sound('bad'); }

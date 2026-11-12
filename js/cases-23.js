@@ -40,7 +40,7 @@
               "The pill bottle is open but full. The capsules are a sleeping aid Alan did not take; the prescription is in his partner's name.",
               "The note is printed on the study printer. The printer queue shows it was typed at 19:58, before Alan's last known login."
             ],
-            gives: ['c23_scene', 'c23_note'],
+            gives: ['c23_scene', 'c23_note', 'c23_prescription'],
             hint: 'The whiskey was not drunk. The pills were not swallowed. The note was printed before he died.'
           },
           { id: 'pc', label: 'Open the scheduled mail server', icon: 'terminal', puzzle: 'mail-term',
@@ -208,6 +208,7 @@
         tells: 'Rowan had the seed phrase. He stole the money before Alan was found.' },
       'c23_poem': { name: 'Acrostic poem', caption: 'ROWAN HOLDS THE KEY', icon: 'book', type: 'Document',
         desc: 'A handwritten poem whose stanza initials spell ROWAN HOLDS THE KEY. The drawer also held a recovery USB.',
+        puzzle: 'poem-cipher',
         tells: 'Alan identified his killer in writing and hid it where only a reader would look.' },
       'c23_contract': { name: 'Buyout contract', caption: 'Alan selling - Rowan removed', icon: 'ledger', type: 'Financial record',
         desc: 'Alan was selling his share for Â£2.4 million. A clause removing Rowan as technical director is struck through in Alan\'s hand.',

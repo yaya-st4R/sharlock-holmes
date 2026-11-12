@@ -216,7 +216,7 @@
                 <div class="log-scroll">${logHTML}</div>
               </div>
               <div class="actions-card">
-                <div class="actions-head"><span class="t">At this location</span><span class="chip">${acts.length + here.length} leads</span></div>
+                <div class="actions-head"><span class="t">At this location</span><span style="display:flex;align-items:center;gap:8px"><span class="chip">${acts.length + here.length} leads</span><button class="btn btn-sm" data-act="inspect" title="Reveal every open lead here">${A.icon('eye')} Inspect · ${(SH.COSTS && SH.COSTS.inspect) || 10} IP</button></span></div>
                 <div class="actions-list">${actionHTML}</div>
               </div>
             </div>
@@ -244,6 +244,7 @@
       /* wire */
       root.querySelectorAll('[data-act="back"]').forEach(b => b.onclick = () => { if (window.SH && SH.Workshop) SH.Workshop.show(); else if (window.UI) UI.showCases(); });
       root.querySelectorAll('[data-act="hint"]').forEach(b => b.onclick = () => this.hint());
+      root.querySelectorAll('[data-act="inspect"]').forEach(b => b.onclick = () => this.inspect());
       root.querySelectorAll('[data-act="brief"]').forEach(b => b.onclick = () => this.briefing(false));
       root.querySelectorAll('[data-act="accuse"]').forEach(b => b.onclick = () => this.accuse());
       root.querySelectorAll('[data-act="verdict"]').forEach(b => b.onclick = () => this.showVerdict());
@@ -348,8 +349,14 @@
     clue(id) {
       const c = G.active, cl = (c.clues || {})[id];
       if (!cl) return;
+      const s = G.state;
+      const examined = !!(s.flags && s.flags['exam_' + id]);
       const photo = A.cluePhoto(cl.icon || 'note', cl);
       const linked = cl.puzzle && (c.puzzles || {})[cl.puzzle];
+      const tellBlock = cl.tells ? (examined
+        ? `<div class="evi-tell"><b>What it tells us</b>${cl.tells}</div>`
+        : `<div class="evi-tell"><b>Detailed reading sealed</b>Something about this evidence does not sit right. Spend investigation points to read what it actually tells you.
+            <div style="margin-top:9px"><button class="btn btn-sm" id="examineEv">${A.icon('search')} Examine closely · ${(SH.COSTS && SH.COSTS.examine) || 5} IP</button></div></div>`) : '';
       const m = G.modal({
         title: esc(cl.name), sub: esc(cl.caption || 'Physical evidence'), icon: 'search', wide: true,
         body: `<div class="evi-detail" style="display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:24px;align-items:start">
@@ -360,7 +367,7 @@
             <h4>${esc(cl.name)}</h4>
             <div class="sub">${esc(cl.type || 'Evidence')}</div>
             <p>${cl.desc || ''}</p>
-            ${cl.tells ? `<div class="evi-tell"><b>What it tells us</b>${cl.tells}</div>` : ''}
+            ${tellBlock}
             ${cl.detail ? `<p style="margin-top:12px">${cl.detail}</p>` : ''}
             ${linked ? `<button class="btn btn-primary" style="margin-top:14px" id="analyse">${A.icon('lock')} Analyse this evidence</button>` : ''}
           </div>
@@ -368,6 +375,18 @@
         footer: `<button class="btn" id="closeEv">Close</button>`
       });
       m.modal.querySelector('#closeEv').onclick = m.close;
+      const ex = m.modal.querySelector('#examineEv');
+      if (ex) ex.onclick = () => {
+        const cost = (SH.COSTS && SH.COSTS.examine) || 5;
+        if (!G.ipSpend(cost, 'A close examination costs ' + cost + ' investigation points.')) return;
+        G.state.flags['exam_' + id] = true;
+        G.save.stats.examined = (G.save.stats.examined || 0) + 1;
+        G.persist();
+        G.sound('good');
+        G.log('sys', 'EXAMINATION — ' + cl.name);
+        m.close();
+        this.clue(id);
+      };
       if (linked) {
         m.modal.querySelector('#analyse').onclick = () => { m.close(); setTimeout(() => this.puzzle(cl.puzzle), 120); };
       }
@@ -384,6 +403,13 @@
       if (!sp) return;
       if (!s.asked[sp.id]) s.asked[sp.id] = [];
       const self = this;
+      const contra = (c.contradictions || []).find(x => x.suspect === sp.id);
+      const intelOn = !!(s.flags && s.flags['intel_' + sp.id]);
+      const intelCost = (SH.COSTS && SH.COSTS.intel) || 10;
+      const evNames = contra ? (contra.evidence || []).map(id => G.clueName(c, id)).join(', ') : '';
+      const intelBlock = intelOn
+        ? `<div class="evi-tell"><b>Intel unlocked</b>${contra ? `Statement ${contra.statement + 1} does not survive <b>${esc(evNames)}</b>. Press them on it.` : 'Their account holds so far. No contradiction is on file.'}</div>`
+        : (contra ? `<div class="intel-ask"><button class="btn btn-sm" id="unlockIntel">${A.icon('eye')} Unlock intel · ${intelCost} IP</button><span>Reveals which part of their account is vulnerable.</span></div>` : '');
       const m = G.modal({
         title: esc(sp.name), sub: (sp.role || 'Person of interest') + (sp.locationName ? ' · ' + sp.locationName : ''), icon: 'user', wide: true,
         body: `<div class="int-row">
@@ -392,6 +418,7 @@
             <div class="int-main">
               <div class="int-name">${esc(sp.name)}</div>
               <p style="margin-bottom:10px">${sp.intro || ''}</p>
+              ${intelBlock}
               <div class="qlist"></div>
               <div class="answers"></div>
             </div>
@@ -401,6 +428,17 @@
       const qlist = m.body.querySelector('.qlist');
       const answers = m.body.querySelector('.answers');
       m.modal.querySelector('#endInt').onclick = m.close;
+      const ui = m.modal.querySelector('#unlockIntel');
+      if (ui) ui.onclick = () => {
+        if (!G.ipSpend(intelCost, 'Unlocking intel costs ' + intelCost + ' investigation points.')) return;
+        s.flags['intel_' + sp.id] = true;
+        G.save.stats.intel = (G.save.stats.intel || 0) + 1;
+        G.persist();
+        G.sound('good');
+        G.log('sys', 'INTEL — ' + sp.name);
+        m.close();
+        this.suspect(sid);
+      };
       function paint() {
         const asked = s.asked[sp.id];
         const qs = sp.questions || [];
@@ -475,6 +513,35 @@
       };
       m.modal.querySelector('#briefClose').onclick = () => { m.close(); if (first) { this.render(); } };
       m.modal.querySelector('#briefGo').onclick = begin;
+    },
+
+    /* --------------------------------------------------------- */
+    inspect() {
+      const c = G.active, s = G.state;
+      if (s.solved) { G.toast('This case is closed. Open another file, detective.', 'folder'); return; }
+      const cost = (SH.COSTS && SH.COSTS.inspect) || 10;
+      if (!G.ipSpend(cost, 'A special inspection costs ' + cost + ' investigation points.')) return;
+      const loc = this.currentLoc();
+      const acts = this.availableActions(loc);
+      const open = acts.filter(a => !a._done && !a._miss);
+      const locked = acts.filter(a => a._miss);
+      let rows = '';
+      if (open.length) rows += open.map(a => `<div class="fact"><b>Lead</b><span><b>${esc(a.label)}</b> — ${esc(a.hint || a.desc || 'This lead is still open.')}</span></div>`).join('');
+      if (locked.length) rows += locked.map(a => `<div class="fact"><b>Locked</b><span>${esc(a.label)} — establish <b>${esc(a._miss)}</b> first.</span></div>`).join('');
+      if (!open.length && !locked.length) rows = `<div class="fact"><b>Clear</b><span>Every lead at ${esc(loc.name)} is exhausted. There is nothing left to sweep here.</span></div>`;
+      const people = (c.suspects || []).filter(sp => sp.location === loc.id && !(s.asked[sp.id] || []).length);
+      if (people.length) rows += `<div class="fact"><b>Witnesses</b><span>${people.map(sp => esc(sp.name)).join(', ')} ${people.length > 1 ? 'have' : 'has'} not been interviewed.</span></div>`;
+      G.save.stats.inspections = (G.save.stats.inspections || 0) + 1;
+      G.persist();
+      G.sound('good');
+      G.log('sys', 'SPECIAL INSPECTION — ' + loc.name);
+      const m = G.modal({
+        title: 'Special inspection', sub: loc.name + ' · scene sweep', icon: 'eye', wide: true,
+        body: `<p style="margin-bottom:14px;color:#b9a6d6">A second pair of eyes walks the scene. The report lists every lead still open here and what each one needs.</p>${rows}`,
+        footer: `<button class="btn btn-primary" id="inspClose">Close the report</button>`
+      });
+      m.modal.querySelector('#inspClose').onclick = m.close;
+      if (window.SH) SH.haptic('good');
     },
 
     /* --------------------------------------------------------- */

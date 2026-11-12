@@ -345,7 +345,7 @@
       kind: 'Case operation · Case 29',
       cover: { kind: 'server', mood: 'night' },
       brief: 'The monitoring system at Kellard House recorded an incident, then lost four minutes. Pose as a night-shift security contractor and copy the raw feed before the system purges at dawn.',
-      reward: 'Delivers the <b>raw footage fragment</b> and the <b>badge log</b> to Case 29.',
+      reward: 'Delivers the <b>raw footage fragment</b>, the <b>badge log</b> and your <b>undercover recording</b> to Case 29.',
       objectives: ['Get into the control room', 'Preserve the raw feed', 'Identify the gap', 'Leave before the purge'],
       intro: 'n1',
       scenes: {
@@ -409,9 +409,9 @@
           art: { kind: 'street', mood: 'night' },
           cap: 'PURGE AVOIDED · 05:02',
           text: ['You walk out with the drive in your jacket. Behind you, the monitors blink through their morning routine.', 'The missing four minutes are not missing any more. Neither is the person who made them.'],
-          rewardClues: ['night_raw', 'night_badge'],
+          rewardClues: ['night_raw', 'night_badge', 'night_audio2'],
           rewardFlags: ['mission_m29'],
-          rewardText: 'Case 29 evidence delivered: the raw footage and the badge log.'
+          rewardText: 'Case 29 evidence delivered: the raw footage, the badge log and your undercover recording.'
         }
       }
     }

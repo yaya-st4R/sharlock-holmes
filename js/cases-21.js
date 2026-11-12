@@ -48,6 +48,10 @@
             gives: ['c21_tape'],
             hint: 'The station frequency is printed on the wall: 102.4. The log is set to 02:14.'
           },
+          { id: 'broadcast', label: 'Play the recovered broadcast', icon: 'ear', puzzle: 'dead-air',
+            desc: 'Eleven minutes of Nadia — live or recorded?',
+            hint: 'Listen to the rhythm and the jingle. A live studio cannot repeat itself that exactly.'
+          },
           { id: 'callum', label: 'Question Callum Reeve', icon: 'user', suspect: 'callum',
             desc: 'Station owner - says he went home at midnight' }
         ]
