@@ -174,6 +174,7 @@
         type: 'cipher', title: 'Margin Numbers', subtitle: 'Five-letter group and a time', icon: 'cipher',
         prompt: 'The torn invoice has a Caesar cipher in the margin. Turn the wheel until the shipment name and hour resolve.',
         plain: 'SABLE SHIPS AT TWO', shift: 4,
+        answers: ['sable ships at two', 'sable ships at 2', 'sable ships at two am', 'sable ships at 2am', 'the sable ships at two', 'ships at two'],
         hintText: 'The station name is Sable. Try shifting until those five letters appear.',
         success: 'The margin resolves: SABLE SHIPS AT TWO. The shipment moves at two in the morning - the exact hour Nadia stopped speaking.',
         gives: ['c21_coded'], flags: ['adDecoded'],

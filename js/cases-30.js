@@ -161,6 +161,7 @@
       'site-term': {
         type: 'terminal', title: 'Site Access System', subtitle: 'Gates, lift and key cards', icon: 'terminal',
         user: 'site', host: 'meridian-tower', password: 'meridian',
+        passwords: ['meridian', 'meridian tower'],
         intro: 'Meridian Tower site control. Type help for commands.',
         banner: 'SUNDAY ACCESS - 05:30 TO 08:00',
         files: [
@@ -227,6 +228,7 @@
         type: 'cipher', title: 'Margin Note', subtitle: 'Architect to developer', icon: 'cipher',
         prompt: 'A pencilled sentence runs along the margin of the drawing set. Turn the wheel until the warning resolves.',
         plain: 'PILINGS MOVED EAST', shift: 5,
+        answers: ['pilings moved east', 'the pilings moved east', 'pilings moved to the east', 'the pilings moved to the east'],
         hintText: 'A shift of five. The first word is PILINGS.',
         success: 'The margin reads PILINGS MOVED EAST. The architect knew the foundation had been shifted and wrote it down.',
         gives: ['c30_cipher'], flags: ['cipherRead'],

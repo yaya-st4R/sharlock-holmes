@@ -153,6 +153,7 @@
         type: 'cipher', title: 'Rare-Book Ledger', subtitle: 'Coded acquisitions', icon: 'cipher',
         prompt: 'The ledger lists donations beside coded initials. Turn the wheel until the seller and the missing book resolve.',
         plain: 'WREN SOLD THE ATLAS', shift: 4,
+        answers: ['wren sold the atlas', 'wren sold atlas', 'wren sold the atlas map', 'the wren sold the atlas'],
         hintText: 'A small shift. The surname on the security staff list is WREN.',
         success: 'The ledger decodes: WREN SOLD THE ATLAS. The security chief had been selling donated rare books for years.',
         gives: ['c28_cipher'], flags: ['cipherRead'],
@@ -162,6 +163,7 @@
       'micro-term': {
         type: 'terminal', title: 'Microfiche Index', subtitle: 'Archive records, 1998', icon: 'terminal',
         user: 'registrar', host: 'bellwether-index', password: 'atlas',
+        passwords: ['atlas', 'the atlas'],
         intro: 'Bellwether College records terminal. Type help for commands.',
         banner: '1988-1999 ARCHIVE - BOX A-114',
         files: [

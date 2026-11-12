@@ -130,6 +130,7 @@
       'mail-term': {
         type: 'terminal', title: 'Scheduled Mail Server', subtitle: 'Alan\'s private account', icon: 'terminal',
         user: 'amercer', host: 'meridian-mail', password: 'nightingale',
+        passwords: ['nightingale', 'the nightingale', 'nightingale account'],
         intro: 'Alan\'s private mail server. Type help for commands.',
         banner: '1 SCHEDULED MESSAGE - DELIVERY 22:00 - RECIPIENT: INVESTIGATIONS',
         files: [
@@ -186,6 +187,7 @@
         type: 'cipher', title: 'The Handwritten Poem', subtitle: 'First letters of each stanza', icon: 'cipher',
         prompt: 'The poem is an acrostic. Turn the cipher wheel until the stanza initials resolve into a word.',
         plain: 'ROWAN HOLDS THE KEY', shift: 2,
+        answers: ['rowan holds the key', 'rowan holds key', 'rowan has the key', 'rowan has key'],
         hintText: 'The first letters are already R H T K. The shift is small.',
         success: 'The acrostic resolves: ROWAN HOLDS THE KEY. Alan hid the accusation in plain sight.',
         gives: ['c23_poem'], flags: ['poemRead'],

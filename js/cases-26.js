@@ -145,6 +145,7 @@
       'relay-term': {
         type: 'terminal', title: 'Relay Console', subtitle: 'North Cliff archive', icon: 'terminal',
         user: 'evane', host: 'northcliff-relay', password: 'morrow',
+        passwords: ['morrow', 'the morrow'],
         intro: 'Relay maintenance console. Type help for commands.',
         banner: 'CARRIER ACTIVE - 02:14 BURST - CHANNEL UNLISTED',
         files: [
@@ -162,6 +163,7 @@
         type: 'cipher', title: 'Tide Cipher', subtitle: 'Paper under the desk', icon: 'cipher',
         prompt: 'A strip of paper is taped beneath the desk. Turn the wheel until the group resolves into a boat and a channel.',
         plain: 'MORROW TIDE THREE', shift: 7,
+        answers: ['morrow tide three', 'morrow tide 3', 'morrow tide at three', 'morrow tide at 3', 'the morrow tide at three'],
         hintText: 'Shift of seven. It starts with the boat that is tied outside.',
         success: 'The paper reads MORROW TIDE THREE. The relay was transmitting on the harbour master\'s private channel.',
         gives: ['c26_cipher'], flags: ['cipherRead'],

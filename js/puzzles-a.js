@@ -13,8 +13,79 @@
     if (html != null) n.innerHTML = html;
     return n;
   }
+  const NUM_WORDS = {
+    zero: '0', one: '1', two: '2', three: '3', four: '4', five: '5',
+    six: '6', seven: '7', eight: '8', nine: '9', ten: '10', eleven: '11',
+    twelve: '12', thirteen: '13', fourteen: '14', fifteen: '15',
+    sixteen: '16', seventeen: '17', eighteen: '18', nineteen: '19', twenty: '20'
+  };
   function norm(s) {
-    return String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    return String(s == null ? '' : s).toLowerCase()
+      .replace(/&/g, ' and ')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(w => {
+        if (NUM_WORDS[w] != null) return NUM_WORDS[w];
+        return w.replace(/^0+(?=\d)/, '');
+      })
+      .join(' ');
+  }
+  function compact(s) { return norm(s).replace(/\s+/g, ''); }
+  const ALL_ACCEPT_KEYS = ['answer', 'answers', 'accept', 'accepted', 'plain', 'plains', 'code', 'codes', 'password', 'passwords'];
+  function acceptedValues(pz, keys) {
+    const out = [];
+    const walk = v => {
+      if (v == null || v === '') return;
+      if (Array.isArray(v)) { v.forEach(walk); return; }
+      if (typeof v === 'object') return;
+      out.push(String(v));
+    };
+    (keys || ALL_ACCEPT_KEYS).forEach(k => walk(pz[k]));
+    return out;
+  }
+  function textMatches(pz, given, keys) {
+    const g = norm(given);
+    if (!g) return false;
+    const gc = compact(given);
+    return acceptedValues(pz, keys).some(v => norm(v) === g || compact(v) === gc);
+  }
+  function editDistance(a, b) {
+    if (a === b) return 0;
+    if (!a.length || !b.length) return Math.max(a.length, b.length);
+    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const row = [i];
+      for (let j = 1; j <= b.length; j++) {
+        row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      }
+      prev = row;
+    }
+    return prev[b.length];
+  }
+  /* Long decoded phrases tolerate one typo: a player who has the message right should not be punished for a slip. */
+  function nearMatch(pz, given) {
+    const g = compact(given);
+    if (g.length < 14) return false;
+    return acceptedValues(pz, ['answer', 'answers', 'accept', 'accepted', 'plain', 'plains']).some(v => {
+      const c = compact(v);
+      return c.length >= 14 && Math.abs(c.length - g.length) <= 1 && editDistance(c, g) <= 1;
+    });
+  }
+  function numberMatches(pz, given) {
+    const raw = String(given == null ? '' : given).replace(/[^0-9.\-]/g, '');
+    const v = parseFloat(raw);
+    if (isNaN(v)) return false;
+    const tol = pz.tolerance == null ? 0.01 : Math.abs(Number(pz.tolerance));
+    return acceptedValues(pz, ['answer', 'answers']).some(a => {
+      const t = Number(String(a).replace(/[^0-9.\-]/g, ''));
+      return isFinite(t) && Math.abs(v - t) <= tol;
+    });
+  }
+  function dialMatches(pz, vals) {
+    const codes = pz.codes && pz.codes.length ? pz.codes : [pz.code];
+    return codes.some(c => Array.isArray(c) && c.length === vals.length && vals.every((v, i) => v === Number(c[i])));
   }
   function closeModal(back) {
     if (!back) return;
@@ -118,7 +189,8 @@
 
   /* ---------- keypad ---------- */
   Puzzles.types.keypad = function (pz, api) {
-    const len = pz.length || String(pz.code || '0000').length;
+    const codeList = acceptedValues(pz, ['code', 'codes']).map(c => c.replace(/\D+/g, '')).filter(Boolean);
+    const len = pz.length || String(codeList[0] || '0000').length;
     let value = '';
     const wrap = el('div', 'device');
     wrap.innerHTML = `<div class="device-screen">
@@ -152,7 +224,7 @@
     api.currentKeys = press;
     function submit() {
       if (value.length < len) { api.note('The code is ' + len + ' digits.'); api.shake(); return; }
-      if (value === String(pz.code)) {
+      if (codeList.some(c => c === value)) {
         api.note('');
         api.solve(pz.success || 'The lock clicks open.');
       } else {
@@ -176,7 +248,7 @@
 
   /* ---------- safe dial ---------- */
   Puzzles.types.dial = function (pz, api) {
-    const code = pz.code || [12, 24, 36];
+    const code = (pz.codes && pz.codes[0]) || pz.code || [12, 24, 36];
     const labels = pz.labels || code.map((_, i) => 'WHEEL ' + (i + 1));
     const vals = code.map(() => 0);
     const wrap = el('div', 'device', `<div class="dial-wrap"></div>
@@ -199,7 +271,7 @@
       dw.appendChild(d);
     });
     wrap.querySelector('.dial-ok').onclick = () => {
-      if (vals.every((v, i) => v === Number(code[i]))) api.solve(pz.success || 'The bolts retract with a heavy thunk.');
+      if (dialMatches(pz, vals)) api.solve(pz.success || 'The bolts retract with a heavy thunk.');
       else { api.note('The dials spin freely. Wrong combination.'); api.shake(); }
     };
     api.stage.appendChild(wrap);
@@ -242,11 +314,11 @@
     }
     range.oninput = paint; paint();
     const submit = () => {
-      const ans = norm(input.value);
-      const accept = [].concat(pz.answer || pz.plain || []).map(norm);
-      if (!ans) { api.note('Write the decoded message first.'); return; }
-      if (accept.includes(ans)) { api.note(''); api.solve(pz.success); }
-      else { api.note('That is not it. Adjust the wheel and read it again.'); sound('bad'); }
+      const ans = input.value;
+      if (!norm(ans)) { api.note('Write the decoded message first.'); return; }
+      if (textMatches(pz, ans, ['answer', 'answers', 'accept', 'accepted', 'plain', 'plains']) || nearMatch(pz, ans)) {
+        api.note(''); api.solve(pz.success);
+      } else { api.note('That is not it. Adjust the wheel and read it again.'); sound('bad'); }
     };
     wrap.querySelector('.submit').onclick = submit;
     input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
@@ -258,6 +330,8 @@
     const user = pz.user || 'investigator';
     const host = pz.host || 'evidence-node';
     const password = String(pz.password || '');
+    const PASS_KEYS = ['password', 'passwords', 'accept', 'accepted'];
+    const passOK = s => textMatches(pz, s, PASS_KEYS);
     const wrap = el('div', 'term');
     wrap.innerHTML = `<div class="term-bar"><i></i><i></i><i></i><span>${A.esc(user)}@${A.esc(host)}: ~</span></div>
       <div class="term-out"></div>
@@ -281,7 +355,7 @@
       let [c, ...rest] = cmd.split(/\s+/);
       let arg = rest.join(' ');
       // A bare password is accepted as a shortcut for "unlock <password>".
-      if (password && cmd.toLowerCase() === password.toLowerCase()) { c = 'unlock'; arg = cmd; }
+      if (passOK(cmd)) { c = 'unlock'; arg = cmd; }
       switch (c.toLowerCase()) {
         case 'help':
           print('Commands: <span class="g">ls</span>  <span class="g">cat &lt;file&gt;</span>  <span class="g">unlock &lt;password&gt;</span>  <span class="g">clear</span>');
@@ -300,7 +374,7 @@
         }
         case 'unlock': case 'sudo': case 'login':
           if (!arg) { print('<span class="d">Usage: unlock &lt;password&gt;</span>'); break; }
-          if (arg.toLowerCase() === password.toLowerCase()) {
+          if (passOK(arg)) {
             unlocked = true;
             print('<span class="g">✓ PASSWORD ACCEPTED. Decrypting secure volume…</span>');
             const secret = files.find(f => f.secret) || files.find(f => f.locked);
@@ -340,11 +414,8 @@
     api.stage.appendChild(wrap);
     const input = wrap.querySelector('input');
     const submit = () => {
-      const v = parseFloat(String(input.value).replace(/[^0-9.\-]/g, ''));
-      const target = Number(pz.answer);
-      const tol = pz.tolerance == null ? 0.01 : Number(pz.tolerance);
-      if (isNaN(v)) { api.note('Enter a number.'); return; }
-      if (Math.abs(v - target) <= tol) api.solve(pz.success);
+      if (!String(input.value).replace(/[^0-9.\-]/g, '').trim()) { api.note('Enter a number.'); return; }
+      if (numberMatches(pz, input.value)) api.solve(pz.success);
       else { api.note(pz.wrong || 'That does not fit the measurements. Recheck your arithmetic.'); api.shake(); }
     };
     wrap.querySelector('.submit').onclick = submit;
@@ -405,5 +476,5 @@
     api.stage.appendChild(box);
   };
 
-  Puzzles.util = { el, norm, caesar, closeModal, sound };
+  Puzzles.util = { el, norm, compact, acceptedValues, textMatches, nearMatch, numberMatches, dialMatches, caesar, closeModal, sound };
 })();
